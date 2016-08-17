@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">Ant Recorder</string>
+
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Settings</string>
+    <string name="out">Out</string>
+    <string name="in">In</string>
+    <string name="data_set">Data set</string>
+    <string name="enter_data_set_request">Enter a data set name</string>
+    <string name="warning">Warning</string>
+    <string name="zero">0</string>
+    <string name="delete_last_entry">Delete last entry</string>
+    <string name="deleted_entry">Deleted entry</string>
+</resources>
