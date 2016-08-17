@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.PorterDuff.Mode;
 import android.media.AudioManager;
@@ -154,16 +155,29 @@ public class MainActivity extends Activity {
     protected void onPause() {
         super.onPause();
         model.save(this);
+        saveDatasetName();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        restoreDatasetName();
         model = CountModel.restore(this);
         if (model == null) {
             model = new CountModel();
         }
         updateCountLabels();
+    }
+
+    private void saveDatasetName() {
+        final SharedPreferences prefs = getSharedPreferences(MainActivity.class.getName(), MODE_PRIVATE);
+        prefs.edit().putString("dataset_name", dataSetField.getText().toString()).apply();
+    }
+
+    private void restoreDatasetName() {
+        final SharedPreferences prefs = getSharedPreferences(MainActivity.class.getName(), MODE_PRIVATE);
+        final String name = prefs.getString("dataset_name", "");
+        dataSetField.setText(name);
     }
 
     private void updateCountLabels() {
