@@ -2,23 +2,15 @@ package org.samcrow.antrecorder;
 
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.DialogInterface;
-import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.PorterDuff.Mode;
 import android.media.AudioManager;
 import android.media.SoundPool;
-import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
-import android.support.v4.content.LocalBroadcastManager;
-import android.text.Editable;
-import android.text.TextWatcher;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MenuItem.OnMenuItemClickListener;
@@ -27,14 +19,36 @@ import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.TextView.OnEditorActionListener;
 import android.widget.Toast;
 
+import com.github.mikephil.charting.charts.CombinedChart;
+import com.github.mikephil.charting.charts.LineChart;
+import com.github.mikephil.charting.components.YAxis.AxisDependency;
+import com.github.mikephil.charting.data.CombinedData;
+import com.github.mikephil.charting.data.Entry;
+import com.github.mikephil.charting.data.LineData;
+import com.github.mikephil.charting.data.LineDataSet;
+import com.github.mikephil.charting.data.ScatterData;
+import com.github.mikephil.charting.data.ScatterDataSet;
+import com.github.mikephil.charting.formatter.ValueFormatter;
+import com.github.mikephil.charting.utils.ViewPortHandler;
+
 import org.joda.time.DateTime;
+import org.joda.time.Duration;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
+import org.joda.time.format.ISODateTimeFormat;
 import org.samcrow.antrecorder.Event.Type;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.RandomAccessFile;
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
 
 public class MainActivity extends Activity {
@@ -53,6 +67,32 @@ public class MainActivity extends Activity {
      * The menu item used to delete entries
      */
     private MenuItem mDeleteItem;
+
+    /**
+     * The rate chart
+     */
+    private LineChart mChart;
+
+
+    /**
+     * The data entries in the chart
+     *
+     * Modifying the list and then invalidating the chart will update the chart with the new data.
+     */
+    private List<Entry> mDataEntries;
+    /**
+     * The data set used in the chart
+     */
+    private LineDataSet mDataSet;
+    /**
+     * The data used in the chart
+     */
+    private LineData mData;
+
+    /**
+     * The current event file, or null if no dataset name has been entered
+     */
+    private EventFile mFile;
 
     private CountModel model;
 
@@ -73,33 +113,21 @@ public class MainActivity extends Activity {
         inCountField = (TextView) findViewById(R.id.in_count);
         outCountField = (TextView) findViewById(R.id.out_count);
 
+        mChart = (LineChart) findViewById(R.id.chart);
+//        mChart.getXAxis().setAxisMinValue(0);
+//        mChart.getAxisLeft().setAxisMinValue(0);
+//        mChart.getAxisRight().setEnabled(false);
+
+
         // Disable buttons (they will be enabled when a data set is entered)
-        inButton.setEnabled(false);
-        outButton.setEnabled(false);
+        setButtonsEnabled(false);
 
-        dataSetField.addTextChangedListener(new TextWatcher() {
+        dataSetField.setOnEditorActionListener(new OnEditorActionListener() {
             @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-
-            }
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-
-            }
-
-            @Override
-            public void afterTextChanged(Editable s) {
-                // Enable buttons if text is empty
-                // Disable if not empty
-                if (dataSetField.getText().toString().isEmpty()) {
-                    setButtonsEnabled(false);
-                } else {
-                    setButtonsEnabled(true);
-                }
-                // Reset counts
-                model = new CountModel();
-                updateCountLabels();
+            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                // Done key pressed
+                updateDataSet();
+                return false;
             }
         });
 
@@ -109,41 +137,17 @@ public class MainActivity extends Activity {
         inButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
-                startSaveEvent(getDataFile(), new Event(Type.AntIn, DateTime.now()));
+                saveEvent(new Event(Type.AntIn, DateTime.now()));
                 sound.play(inSoundId, VOLUME, VOLUME, 1, 0, 1);
             }
         });
         outButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
-                startSaveEvent(getDataFile(), new Event(Type.AntOut, DateTime.now()));
+                saveEvent(new Event(Type.AntOut, DateTime.now()));
                 sound.play(outSoundId, VOLUME, VOLUME, 1, 0, 1);
             }
         });
-
-        // Set up handlers for intents from the write task
-        LocalBroadcastManager.getInstance(this).registerReceiver(new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                // Success
-                final Event event = (Event) intent.getSerializableExtra("event");
-                model.process(event);
-                updateCountLabels();
-            }
-        }, new IntentFilter(FileWriteService.BROADCAST_SUCCESS));
-
-        LocalBroadcastManager.getInstance(this).registerReceiver(new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                // Failure
-                if (intent.hasExtra("exception")) {
-                    final Exception ex = (Exception) intent.getSerializableExtra("exception");
-                    showErrorDialog(ex.getClass().getSimpleName(), ex.getMessage());
-                } else {
-                    showErrorDialog("Failed to write", intent.getStringExtra("message"));
-                }
-            }
-        }, new IntentFilter(FileWriteService.BROADCAST_FAILURE));
 
         // Set up sound
         sound = new SoundPool(4, AudioManager.STREAM_SYSTEM, 0);
@@ -151,10 +155,41 @@ public class MainActivity extends Activity {
         outSoundId = sound.load(this, R.raw.ping_low, 1);
     }
 
+    private void updateDataSet() {
+        if (dataSetField.getText().length() != 0) {
+            // Some data set was selected
+
+            try {
+                mFile = new EventFile(getDataPath());
+                model = new CountModel(mFile);
+                setButtonsEnabled(true);
+                updateChartData();
+
+            } catch (FileNotFoundException e) {
+                new AlertDialog.Builder(MainActivity.this)
+                        .setTitle("Failed to open or create data file")
+                        .setMessage(e.getLocalizedMessage())
+                        .show();
+            } catch (ParseException e) {
+                new AlertDialog.Builder(MainActivity.this)
+                        .setTitle("Failed to parse data file")
+                        .setMessage(e.getLocalizedMessage())
+                        .show();
+            } catch (IOException e) {
+                new AlertDialog.Builder(MainActivity.this)
+                        .setTitle("Failed to read from data file")
+                        .setMessage(e.getLocalizedMessage())
+                        .show();
+            }
+        } else {
+            // No data set
+            setButtonsEnabled(false);
+        }
+    }
+
     @Override
     protected void onPause() {
         super.onPause();
-        model.save(this);
         saveDatasetName();
     }
 
@@ -162,40 +197,31 @@ public class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
         restoreDatasetName();
-        model = CountModel.restore(this);
-        if (model == null) {
-            model = new CountModel();
-        }
+        updateDataSet();
         updateCountLabels();
     }
 
     private void saveDatasetName() {
-        final SharedPreferences prefs = getSharedPreferences(MainActivity.class.getName(), MODE_PRIVATE);
+        final SharedPreferences prefs = getSharedPreferences(MainActivity.class.getName(),
+                MODE_PRIVATE);
         prefs.edit().putString("dataset_name", dataSetField.getText().toString()).apply();
     }
 
     private void restoreDatasetName() {
-        final SharedPreferences prefs = getSharedPreferences(MainActivity.class.getName(), MODE_PRIVATE);
+        final SharedPreferences prefs = getSharedPreferences(MainActivity.class.getName(),
+                MODE_PRIVATE);
         final String name = prefs.getString("dataset_name", "");
         dataSetField.setText(name);
     }
 
     private void updateCountLabels() {
-        inCountField.setText(String.format(Locale.getDefault(), "%d", model.getInCount()));
-        outCountField.setText(String.format(Locale.getDefault(), "%d", model.getOutCount()));
-    }
-
-    private void showErrorDialog(String title, String message) {
-        new AlertDialog.Builder(this)
-                .setTitle(title)
-                .setMessage(message)
-                .setNeutralButton("OK", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        // Nothing
-                    }
-                })
-                .show();
+        if (model != null) {
+            inCountField.setText(String.format(Locale.getDefault(), "%d", model.getInCount()));
+            outCountField.setText(String.format(Locale.getDefault(), "%d", model.getOutCount()));
+        } else {
+            inCountField.setText("-");
+            outCountField.setText("-");
+        }
     }
 
     private void setButtonsEnabled(boolean enabled) {
@@ -217,9 +243,12 @@ public class MainActivity extends Activity {
             @Override
             public boolean onMenuItemClick(MenuItem item) {
                 try {
-                    deleteLastEntry(getDataFile());
-                    Toast.makeText(MainActivity.this, R.string.deleted_entry, Toast.LENGTH_SHORT)
-                            .show();
+                    if (mFile != null) {
+                        mFile.removeLastEvent();
+                        Toast.makeText(MainActivity.this, R.string.deleted_entry,
+                                Toast.LENGTH_SHORT)
+                                .show();
+                    }
                 } catch (IOException e) {
                     new AlertDialog.Builder(MainActivity.this)
                             .setTitle("Failed to delete entry")
@@ -235,57 +264,71 @@ public class MainActivity extends Activity {
         return true;
     }
 
-    /**
-     * Deletes the last entry from the provided file
-     *
-     * @param file the file to delete from
-     * @throws IOException
-     */
-    private void deleteLastEntry(File file) throws IOException {
-        final RandomAccessFile random = new RandomAccessFile(file, "rw");
-        if (file.length() < 2) {
-            // Nothing to delete
-            return;
-        }
-
-        // Seek to the end, then go back to the newline before the last line
-        // Start 2 before the file length, so that the first character read will be just before
-        // the newline at the end of the file
-        random.seek(random.length() - 2);
-        // Move back until a newline is found
-        while (random.getFilePointer() != 0) {
-            random.seek(random.getFilePointer() - 1);
-            final byte thisCharacter = random.readByte();
-            // Move back again to undo the forward movement caused by the write
-            random.seek(random.getFilePointer() - 1);
-            final byte newline = (byte) 0x0A;
-            if (thisCharacter == newline) {
-                // At the end of the line
-                // Truncate the file to this length
-                random.setLength(random.getFilePointer() + 1);
-                break;
-            }
-        }
-        if (random.getFilePointer() == 0) {
-            random.setLength(0);
-        }
-    }
-
-    private File getDataFile() {
+    private String getDataPath() {
         return new File(getMemoryCard(),
-                "Ant events " + dataSetField.getText().toString() + ".csv");
+                "Ant events " + dataSetField.getText().toString() + ".csv").getAbsolutePath();
     }
 
-    private void startSaveEvent(File file, Event event) {
-
-        if (!Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
-            Log.w(TAG, "External storage state is " + Environment.getExternalStorageState());
+    private void saveEvent(Event event) {
+        if (mFile != null) {
+            try {
+                mFile.appendEvent(event);
+                model.process(event);
+                updateCountLabels();
+                updateChartData();
+            } catch (IOException e) {
+                new AlertDialog.Builder(MainActivity.this)
+                        .setTitle("Failed to save entry")
+                        .setMessage(e.getLocalizedMessage())
+                        .show();
+            }
+        } else {
+            new AlertDialog.Builder(MainActivity.this)
+                    .setTitle("No data set selected")
+                    .setMessage("Please enter a data set name")
+                    .show();
         }
+    }
 
-        final Intent intent = new Intent(this, FileWriteService.class);
-        intent.setData(Uri.parse(file.toURI().toString()));
-        intent.putExtra("event", event);
-        startService(intent);
+    private void updateChartData() {
+        try {
+            final Event earliest = mFile.getFirstEvent();
+            if (earliest != null) {
+
+                // Find rates for each minute, starting at the first event
+                if (mDataEntries == null) {
+                    mDataEntries = new ArrayList<>();
+                }
+                mDataEntries.clear();
+                final Duration interval = Duration.standardMinutes(1);
+                final DateTime now = DateTime.now();
+                for (DateTime startTime = earliest.getTime(); startTime.isBefore(now); startTime = startTime.plus(interval)) {
+                    final double inRate = model.getInRate(startTime.plus(interval), interval);
+                    final double outRate = model.getOutRate(startTime.plus(interval), interval);
+
+                    final Entry timeEntry = new Entry((float) inRate, (float) outRate, startTime);
+                    mDataEntries.add(timeEntry);
+                }
+
+
+                if (mDataSet == null) {
+                    mDataSet = new LineDataSet(mDataEntries, "Rates");
+                    mDataSet.setDrawValues(false);
+                }
+                if (mData == null) {
+                    mData = new LineData(mDataSet);
+                    mChart.setData(mData);
+                }
+                mChart.invalidate();
+            } else {
+                // Clear chart
+                mChart.clear();
+            }
+
+        } catch (IOException | ParseException e) {
+            // Clear chart
+            mChart.clear();
+        }
     }
 
 
@@ -313,5 +356,20 @@ public class MainActivity extends Activity {
             return dir;
         }
         return Environment.getExternalStorageDirectory();
+    }
+
+
+    /**
+     * A formatter that displays the time of an entry
+     */
+    private static class TimeFormatter implements ValueFormatter {
+
+        @Override
+        public String getFormattedValue(float value, Entry entry, int dataSetIndex,
+                                        ViewPortHandler viewPortHandler) {
+            final DateTime time = (DateTime) entry.getData();
+            final DateTimeFormatter formatter = DateTimeFormat.shortTime();
+            return formatter.print(time);
+        }
     }
 }

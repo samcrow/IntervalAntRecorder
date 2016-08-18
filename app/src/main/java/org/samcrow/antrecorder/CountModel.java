@@ -1,184 +1,182 @@
 package org.samcrow.antrecorder;
 
-import android.content.Context;
-import android.content.SharedPreferences;
-
 import org.joda.time.DateTime;
+import org.joda.time.Duration;
 import org.samcrow.antrecorder.Event.Type;
 
+import java.io.IOException;
+import java.text.ParseException;
 import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.Iterator;
-import java.util.Queue;
+import java.util.List;
 
 /**
  * Keeps track of numbers of events recorded
  */
 public class CountModel {
-	private static final String PREFS_TAG = CountModel.class.getName();
 
-	public static class Status {
-		/**
-		 * The number of ants that have arrived
-		 */
-		public final int inCount;
-		/**
-		 * The number of ants that have left
-		 */
-		public final int outCount;
-		/**
-		 * The ratio of outgoing ants to incoming ants
-		 */
-		public final double outRatio;
-		/**
-		 * The result of subtracting the in count from the out count,
-		 * or the number of outgoing ants who have not returned
-		 */
-		public final int outDifference;
-		/**
-		 * The rate of incoming ants over the last minute
-		 */
-		public final double inRate;
-		/**
-		 * The rate of outgoing ants over the last minute
-		 */
-		public final double outRate;
+    public static class Status {
+        /**
+         * The number of ants that have arrived
+         */
+        public final int inCount;
+        /**
+         * The number of ants that have left
+         */
+        public final int outCount;
+        /**
+         * The ratio of outgoing ants to incoming ants
+         */
+        public final double outRatio;
+        /**
+         * The result of subtracting the in count from the out count,
+         * or the number of outgoing ants who have not returned
+         */
+        public final int outDifference;
+        /**
+         * The rate of incoming ants over the last minute
+         */
+        public final double inRate;
+        /**
+         * The rate of outgoing ants over the last minute
+         */
+        public final double outRate;
 
-		public Status(int inCount, int outCount, double outRatio, int outDifference, double inRate, double outRate) {
-			this.inCount = inCount;
-			this.outCount = outCount;
-			this.outRatio = outRatio;
-			this.outDifference = outDifference;
-			this.outRate = outRate;
-			this.inRate = inRate;
-		}
-	}
+        public Status(int inCount, int outCount, double outRatio, int outDifference, double inRate, double outRate) {
+            this.inCount = inCount;
+            this.outCount = outCount;
+            this.outRatio = outRatio;
+            this.outDifference = outDifference;
+            this.outRate = outRate;
+            this.inRate = inRate;
+        }
+    }
 
-	/**
-	 * Incoming ant count
-	 */
-	private int inCount = 0;
-	/**
-	 * Outgoing ant count
-	 */
-	private int outCount = 0;
+    /**
+     * Queue of out events, with the oldest event at the head and the
+     * newest at the tail
+     */
+    private final Deque<Event> outQueue = new ArrayDeque<>();
+    /**
+     * Queue of in events, with the oldest event at the head and the
+     * newest at the tail
+     */
+    private final Deque<Event> inQueue = new ArrayDeque<>();
 
-	/**
-	 * Queue of out events in the last minute, with the oldest event at the head and the
-	 * newest at the tail
-	 */
-	private final Queue<Event> outQueue = new ArrayDeque<>();
-	/**
-	 * Queue of in events in the last , with the oldest event at the head and the
-	 * newest at the tail
-	 */
-	private final Queue<Event> inQueue = new ArrayDeque<>();
+    /**
+     * Creates a new model with no events
+     */
+    public CountModel() {
 
-	/**
-	 * Creates a new model
-	 */
-	public CountModel() {
+    }
 
-	}
+    /**
+     * Creates a new model by reading events from a file
+     * @param file the file to read from
+     */
+    public CountModel(EventFile file) throws IOException, ParseException {
+        final List<Event> events = file.getEvents();
+        for (Event event : events) {
+            process(event);
+        }
+    }
 
-	/**
-	 * Restores a CountModel from saved preferences
-	 * @param source the context to get preferences from
-	 * @return a restored CountModel, or null if none could be restored
-	 */
-	public static CountModel restore(Context source) {
-		final SharedPreferences prefs = source.getSharedPreferences(PREFS_TAG, Context.MODE_PRIVATE);
-		if(prefs.contains("in_count") && prefs.contains("out_count")) {
-			final CountModel model = new CountModel();
-			model.inCount = prefs.getInt("in_count", 0);
-			model.outCount = prefs.getInt("out_count", 0);
-			return model;
-		}
-		else {
-			return null;
-		}
-	}
+    public void process(Event event) {
+        if (event == null) {
+            throw new NullPointerException("event must not be null");
+        }
 
-	/**
-	 * Saves this CountModel to the preferences
-	 * @param context the context to get preferences from
-	 */
-	public void save(Context context) {
-		final SharedPreferences prefs = context.getSharedPreferences(PREFS_TAG, Context.MODE_PRIVATE);
-		prefs.edit()
-				.putInt("in_count", inCount)
-				.putInt("out_count", outCount)
-				.apply();
-	}
+        if (event.getType() == Type.AntIn) {
+            inQueue.add(event);
+        } else {
+            outQueue.add(event);
+        }
+    }
 
-	public void process(Event event) {
-		if (event == null) {
-			throw new NullPointerException("event must not be null");
-		}
+    /**
+     * @return the number of outgoing ants
+     */
+    public int getInCount() {
+        return inQueue.size();
+    }
 
-		if (event.getType() == Type.AntIn) {
-			incrementIn();
-			inQueue.add(event);
-		} else {
-			incrementOut();
-			outQueue.add(event);
-		}
-		trimQueues();
-	}
+    /**
+     * @return the number of incoming ants
+     */
+    public int getOutCount() {
+        return outQueue.size();
+    }
 
-	/**
-	 * Increases by one the number of incoming ants
-	 */
-	private void incrementIn() {
-		inCount++;
-	}
+    /**
+     * Calculates the average rate of events over the provided duration
+     * @param queue a queue of events
+     * @param duration the duration over which to calculate the rate
+     * @return the average rate of events, in events per second
+     */
+    private double getRate(Deque<Event> queue, Duration duration) {
+        final DateTime threshold = DateTime.now().minus(duration);
+        // Count the events in the time range
+        int count = 0;
+        // Iterate from the tail to the head
+        for (Iterator<Event> iter = queue.descendingIterator(); iter.hasNext(); ) {
+            final Event event = iter.next();
+            if (event.getTime().isBefore(threshold)) {
+                break;
+            }
+            count++;
+        }
 
-	/**
-	 * Increases by one the number of outgoing ants
-	 */
-	private void incrementOut() {
-		outCount++;
-	}
+        final long seconds = duration.getStandardSeconds();
 
-	/**
-	 * @return the number of outgoing ants
-	 */
-	public int getInCount() {
-		return inCount;
-	}
+        return (double) count / (double) seconds;
+    }
 
-	/**
-	 * @return the number of incoming ants
-	 */
-	public int getOutCount() {
-		return outCount;
-	}
+    public Status getStatus() {
 
-	public Status getStatus() {
-		trimQueues();
-		return new Status(inCount,
-				outCount,
-				outCount / (double) inCount,
-				outCount - inCount,
-				inQueue.size(), outQueue.size()
-		);
-	}
+        final Duration rateDuration = Duration.standardMinutes(1);
 
-	private void trimQueues() {
-		trimQueue(inQueue);
-		trimQueue(outQueue);
-	}
+        final int inCount = getInCount();
+        final int outCount = getOutCount();
+        return new Status(inCount,
+                outCount,
+                outCount / (double) inCount,
+                outCount - inCount,
+                getRate(inQueue, rateDuration), getRate(outQueue, rateDuration)
+        );
+    }
 
-	private static void trimQueue(Queue<Event> queue) {
-		final DateTime oneMinuteAgo = DateTime.now().minusMinutes(1);
+    /**
+     * Calculates and returns the rate of in events
+     * @param end the end of the time range to evaluate
+     * @param duration the duration of the time range to evaluate
+     * @return the rate of in events, in events per second, over the provided time range
+     */
+    public double getInRate(DateTime end, Duration duration) {
+        return getRate(inQueue, end.minus(duration), end);
+    }
+    /**
+     * Calculates and returns the rate of out events
+     * @param end the end of the time range to evaluate
+     * @param duration the duration of the time range to evaluate
+     * @return the rate of out events, in events per second, over the provided time range
+     */
+    public double getOutRate(DateTime end, Duration duration) {
+        return getRate(outQueue, end.minus(duration), end);
+    }
 
-		for (final Iterator<Event> iter = queue.iterator(); iter.hasNext(); ) {
-			final Event event = iter.next();
-			if (event.getTime().isBefore(oneMinuteAgo)) {
-				iter.remove();
-			} else {
-				// The other elements are more recent
-				break;
-			}
-		}
-	}
+    private double getRate(Deque<Event> events, DateTime start, DateTime end) {
+        // Iterate from earliest to latest
+        int count = 0;
+        for (Event event : events) {
+            if (event.getTime().isAfter(end)) {
+                break;
+            }
+            if (event.getTime().isAfter(start)) {
+                count++;
+            }
+        }
+        final long durationSeconds = new Duration(start, end).getStandardSeconds();
+        return count / (double) durationSeconds;
+    }
 }

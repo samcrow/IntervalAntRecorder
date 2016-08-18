@@ -133,4 +133,45 @@
         </LinearLayout>
     </LinearLayout>
 
+    <RelativeLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/linearLayout"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:layout_above="@+id/enter_name_view"
+        android:layout_alignRight="@+id/enter_name_view"
+        android:layout_alignEnd="@+id/enter_name_view">
+        <com.github.mikephil.charting.charts.LineChart
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/chart"
+            android:layout_above="@+id/textView2"
+            android:layout_toRightOf="@+id/textView3"
+            android:layout_alignParentTop="true"
+            android:layout_alignParentRight="true"
+            android:layout_alignParentEnd="true"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:text="@string/in"
+            android:id="@+id/textView2"
+            android:layout_alignParentBottom="true"
+            android:layout_centerHorizontal="true"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:text="@string/out"
+            android:rotation="270"
+            android:id="@+id/textView3"
+            android:layout_centerVertical="true"
+            android:layout_alignParentLeft="true"
+            android:layout_alignParentStart="true"/>
+    </RelativeLayout>
+
+
 </RelativeLayout>
