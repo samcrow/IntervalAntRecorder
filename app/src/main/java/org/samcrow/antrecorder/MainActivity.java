@@ -309,6 +309,7 @@ public class MainActivity extends Activity {
                     final Entry timeEntry = new Entry((float) inRate, (float) outRate, startTime);
                     mDataEntries.add(timeEntry);
                 }
+                Log.d(TAG, "Entries: " + mDataEntries);
 
 
                 if (mDataSet == null) {

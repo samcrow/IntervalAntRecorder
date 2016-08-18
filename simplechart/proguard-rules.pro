@@ -15,6 +15,3 @@
 #-keepclassmembers class fqcn.of.javascript.interface.for.webview {
 #   public *;
 #}
-
-# Support for MPAndroidChart
--keep class com.github.mikephil.charting.** { *; }

@@ -4,6 +4,7 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/AntRecorder.iml" filepath="$PROJECT_DIR$/AntRecorder.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/simplechart/simplechart.iml" filepath="$PROJECT_DIR$/simplechart/simplechart.iml" />
     </modules>
   </component>
 </project>
