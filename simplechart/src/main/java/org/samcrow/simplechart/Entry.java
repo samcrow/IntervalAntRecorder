@@ -41,4 +41,13 @@ public class Entry<T> {
     public T getData() {
         return mData;
     }
+
+    @Override
+    public String toString() {
+        return "Entry{" +
+                "mX=" + mX +
+                ", mY=" + mY +
+                ", mData=" + mData +
+                '}';
+    }
 }

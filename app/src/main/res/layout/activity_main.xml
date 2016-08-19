@@ -142,7 +142,7 @@
         android:layout_above="@+id/enter_name_view"
         android:layout_alignRight="@+id/enter_name_view"
         android:layout_alignEnd="@+id/enter_name_view">
-        <com.github.mikephil.charting.charts.LineChart
+        <org.samcrow.simplechart.Chart
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:id="@+id/chart"

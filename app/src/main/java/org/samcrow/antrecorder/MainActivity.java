@@ -22,32 +22,19 @@ import android.widget.TextView;
 import android.widget.TextView.OnEditorActionListener;
 import android.widget.Toast;
 
-import com.github.mikephil.charting.charts.CombinedChart;
-import com.github.mikephil.charting.charts.LineChart;
-import com.github.mikephil.charting.components.YAxis.AxisDependency;
-import com.github.mikephil.charting.data.CombinedData;
-import com.github.mikephil.charting.data.Entry;
-import com.github.mikephil.charting.data.LineData;
-import com.github.mikephil.charting.data.LineDataSet;
-import com.github.mikephil.charting.data.ScatterData;
-import com.github.mikephil.charting.data.ScatterDataSet;
-import com.github.mikephil.charting.formatter.ValueFormatter;
-import com.github.mikephil.charting.utils.ViewPortHandler;
-
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
-import org.joda.time.format.ISODateTimeFormat;
 import org.samcrow.antrecorder.Event.Type;
+import org.samcrow.simplechart.Chart;
+import org.samcrow.simplechart.Entry;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
@@ -71,7 +58,7 @@ public class MainActivity extends Activity {
     /**
      * The rate chart
      */
-    private LineChart mChart;
+    private Chart<DateTime> mChart;
 
 
     /**
@@ -79,15 +66,7 @@ public class MainActivity extends Activity {
      *
      * Modifying the list and then invalidating the chart will update the chart with the new data.
      */
-    private List<Entry> mDataEntries;
-    /**
-     * The data set used in the chart
-     */
-    private LineDataSet mDataSet;
-    /**
-     * The data used in the chart
-     */
-    private LineData mData;
+    private List<Entry<DateTime>> mDataEntries;
 
     /**
      * The current event file, or null if no dataset name has been entered
@@ -113,10 +92,7 @@ public class MainActivity extends Activity {
         inCountField = (TextView) findViewById(R.id.in_count);
         outCountField = (TextView) findViewById(R.id.out_count);
 
-        mChart = (LineChart) findViewById(R.id.chart);
-//        mChart.getXAxis().setAxisMinValue(0);
-//        mChart.getAxisLeft().setAxisMinValue(0);
-//        mChart.getAxisRight().setEnabled(false);
+        mChart = (Chart<DateTime>) findViewById(R.id.chart);
 
 
         // Disable buttons (they will be enabled when a data set is entered)
@@ -298,6 +274,7 @@ public class MainActivity extends Activity {
                 // Find rates for each minute, starting at the first event
                 if (mDataEntries == null) {
                     mDataEntries = new ArrayList<>();
+                    mChart.setData(mDataEntries);
                 }
                 mDataEntries.clear();
                 final Duration interval = Duration.standardMinutes(1);
@@ -306,20 +283,12 @@ public class MainActivity extends Activity {
                     final double inRate = model.getInRate(startTime.plus(interval), interval);
                     final double outRate = model.getOutRate(startTime.plus(interval), interval);
 
-                    final Entry timeEntry = new Entry((float) inRate, (float) outRate, startTime);
+                    final Entry<DateTime> timeEntry = new Entry<>((float) inRate, (float) outRate, startTime);
                     mDataEntries.add(timeEntry);
                 }
                 Log.d(TAG, "Entries: " + mDataEntries);
 
 
-                if (mDataSet == null) {
-                    mDataSet = new LineDataSet(mDataEntries, "Rates");
-                    mDataSet.setDrawValues(false);
-                }
-                if (mData == null) {
-                    mData = new LineData(mDataSet);
-                    mChart.setData(mData);
-                }
                 mChart.invalidate();
             } else {
                 // Clear chart
@@ -359,18 +328,4 @@ public class MainActivity extends Activity {
         return Environment.getExternalStorageDirectory();
     }
 
-
-    /**
-     * A formatter that displays the time of an entry
-     */
-    private static class TimeFormatter implements ValueFormatter {
-
-        @Override
-        public String getFormattedValue(float value, Entry entry, int dataSetIndex,
-                                        ViewPortHandler viewPortHandler) {
-            final DateTime time = (DateTime) entry.getData();
-            final DateTimeFormatter formatter = DateTimeFormat.shortTime();
-            return formatter.print(time);
-        }
-    }
 }
