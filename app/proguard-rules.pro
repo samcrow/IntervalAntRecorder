@@ -16,5 +16,5 @@
 #   public *;
 #}
 
-# Support for MPAndroidChart
--keep class com.github.mikephil.charting.** { *; }
+# Androidplot support
+-keep class com.androidplot.** { *; }
