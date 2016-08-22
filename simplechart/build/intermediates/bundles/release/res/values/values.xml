@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="color_default_axis">#000</color>
+    <color name="color_default_data">#222</color>
+    <string name="app_name">SimpleChart</string>
+</resources>

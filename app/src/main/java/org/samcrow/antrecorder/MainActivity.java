@@ -351,10 +351,6 @@ public class MainActivity extends Activity {
         if (dir.exists() && dir.isDirectory()) {
             return dir;
         }
-        dir = new File("/storage/6133-3731");
-        if (dir.exists() && dir.isDirectory()) {
-            return dir;
-        }
         return Environment.getExternalStorageDirectory();
     }
 
