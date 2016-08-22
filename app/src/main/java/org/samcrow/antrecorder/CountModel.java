@@ -147,6 +147,31 @@ public class CountModel {
     }
 
     /**
+     * Deletes the last entry from the model
+     */
+    public void deleteLast() {
+        final Event lastIn = inQueue.peekLast();
+        final Event lastOut = outQueue.peekLast();
+        if (lastIn != null && lastOut == null) {
+            inQueue.removeLast();
+        } else if (lastIn == null && lastOut != null) {
+            outQueue.removeLast();
+        } else //noinspection StatementWithEmptyBody
+            if (lastIn != null) {
+            // Neither is null
+            // Delete the newer one
+            if (lastIn.getTime().compareTo(lastOut.getTime()) > 0) {
+                inQueue.removeLast();
+            } else {
+                outQueue.removeLast();
+            }
+        } else {
+            // Both null
+            // Do nothing
+        }
+    }
+
+    /**
      * Calculates and returns the rate of in events
      * @param end the end of the time range to evaluate
      * @param duration the duration of the time range to evaluate

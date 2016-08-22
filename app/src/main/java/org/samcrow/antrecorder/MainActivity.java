@@ -4,12 +4,12 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.SharedPreferences;
 import android.graphics.Color;
+import android.graphics.Paint;
 import android.graphics.PorterDuff.Mode;
 import android.media.AudioManager;
 import android.media.SoundPool;
 import android.os.Bundle;
 import android.os.Environment;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -22,23 +22,15 @@ import android.widget.TextView;
 import android.widget.TextView.OnEditorActionListener;
 import android.widget.Toast;
 
-import com.github.mikephil.charting.charts.CombinedChart;
-import com.github.mikephil.charting.charts.LineChart;
-import com.github.mikephil.charting.components.YAxis.AxisDependency;
-import com.github.mikephil.charting.data.CombinedData;
-import com.github.mikephil.charting.data.Entry;
-import com.github.mikephil.charting.data.LineData;
-import com.github.mikephil.charting.data.LineDataSet;
-import com.github.mikephil.charting.data.ScatterData;
-import com.github.mikephil.charting.data.ScatterDataSet;
-import com.github.mikephil.charting.formatter.ValueFormatter;
-import com.github.mikephil.charting.utils.ViewPortHandler;
+import com.androidplot.Plot;
+import com.androidplot.ui.SeriesRenderer;
+import com.androidplot.xy.BoundaryMode;
+import com.androidplot.xy.LineAndPointFormatter;
+import com.androidplot.xy.XYPlot;
+import com.androidplot.xy.XYSeriesFormatter;
 
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
-import org.joda.time.format.DateTimeFormat;
-import org.joda.time.format.DateTimeFormatter;
-import org.joda.time.format.ISODateTimeFormat;
 import org.samcrow.antrecorder.Event.Type;
 
 import java.io.File;
@@ -46,9 +38,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 import java.util.Locale;
 
 public class MainActivity extends Activity {
@@ -71,23 +60,7 @@ public class MainActivity extends Activity {
     /**
      * The rate chart
      */
-    private LineChart mChart;
-
-
-    /**
-     * The data entries in the chart
-     *
-     * Modifying the list and then invalidating the chart will update the chart with the new data.
-     */
-    private List<Entry> mDataEntries;
-    /**
-     * The data set used in the chart
-     */
-    private LineDataSet mDataSet;
-    /**
-     * The data used in the chart
-     */
-    private LineData mData;
+    private XYPlot mChart;
 
     /**
      * The current event file, or null if no dataset name has been entered
@@ -113,10 +86,10 @@ public class MainActivity extends Activity {
         inCountField = (TextView) findViewById(R.id.in_count);
         outCountField = (TextView) findViewById(R.id.out_count);
 
-        mChart = (LineChart) findViewById(R.id.chart);
-//        mChart.getXAxis().setAxisMinValue(0);
-//        mChart.getAxisLeft().setAxisMinValue(0);
-//        mChart.getAxisRight().setEnabled(false);
+        mChart = (XYPlot) findViewById(R.id.chart);
+        mChart.setDomainBoundaries(0, BoundaryMode.FIXED, null, BoundaryMode.AUTO);
+        mChart.setRangeBoundaries(0, BoundaryMode.FIXED, null, BoundaryMode.AUTO);
+        mChart.getLegendWidget().setVisible(false);
 
 
         // Disable buttons (they will be enabled when a data set is entered)
@@ -159,9 +132,23 @@ public class MainActivity extends Activity {
         if (dataSetField.getText().length() != 0) {
             // Some data set was selected
 
+            inCountField.setText("");
+            outCountField.setText("");
+
             try {
                 mFile = new EventFile(getDataPath());
                 model = new CountModel(mFile);
+
+                final LineAndPointFormatter formatter = new LineAndPointFormatter();
+                formatter.configure(this, R.xml.line_formatter);
+                final Paint noFill = new Paint();
+                noFill.setAlpha(0);
+                formatter.setFillPaint(noFill);
+
+                mChart.clear();
+                mChart.addSeries(new AntRateSeries(mFile, model), formatter);
+                mChart.redraw();
+
                 setButtonsEnabled(true);
                 updateChartData();
 
@@ -245,6 +232,8 @@ public class MainActivity extends Activity {
                 try {
                     if (mFile != null) {
                         mFile.removeLastEvent();
+                        model.deleteLast();
+                        updateChartData();
                         Toast.makeText(MainActivity.this, R.string.deleted_entry,
                                 Toast.LENGTH_SHORT)
                                 .show();
@@ -291,44 +280,7 @@ public class MainActivity extends Activity {
     }
 
     private void updateChartData() {
-        try {
-            final Event earliest = mFile.getFirstEvent();
-            if (earliest != null) {
-
-                // Find rates for each minute, starting at the first event
-                if (mDataEntries == null) {
-                    mDataEntries = new ArrayList<>();
-                }
-                mDataEntries.clear();
-                final Duration interval = Duration.standardMinutes(1);
-                final DateTime now = DateTime.now();
-                for (DateTime startTime = earliest.getTime(); startTime.isBefore(now); startTime = startTime.plus(interval)) {
-                    final double inRate = model.getInRate(startTime.plus(interval), interval);
-                    final double outRate = model.getOutRate(startTime.plus(interval), interval);
-
-                    final Entry timeEntry = new Entry((float) inRate, (float) outRate, startTime);
-                    mDataEntries.add(timeEntry);
-                }
-
-
-                if (mDataSet == null) {
-                    mDataSet = new LineDataSet(mDataEntries, "Rates");
-                    mDataSet.setDrawValues(false);
-                }
-                if (mData == null) {
-                    mData = new LineData(mDataSet);
-                    mChart.setData(mData);
-                }
-                mChart.invalidate();
-            } else {
-                // Clear chart
-                mChart.clear();
-            }
-
-        } catch (IOException | ParseException e) {
-            // Clear chart
-            mChart.clear();
-        }
+        mChart.redraw();
     }
 
 
@@ -352,20 +304,5 @@ public class MainActivity extends Activity {
             return dir;
         }
         return Environment.getExternalStorageDirectory();
-    }
-
-
-    /**
-     * A formatter that displays the time of an entry
-     */
-    private static class TimeFormatter implements ValueFormatter {
-
-        @Override
-        public String getFormattedValue(float value, Entry entry, int dataSetIndex,
-                                        ViewPortHandler viewPortHandler) {
-            final DateTime time = (DateTime) entry.getData();
-            final DateTimeFormatter formatter = DateTimeFormat.shortTime();
-            return formatter.print(time);
-        }
     }
 }
