@@ -22,24 +22,17 @@ import android.widget.TextView;
 import android.widget.TextView.OnEditorActionListener;
 import android.widget.Toast;
 
-import com.androidplot.Plot;
-import com.androidplot.ui.SeriesRenderer;
 import com.androidplot.xy.BoundaryMode;
 import com.androidplot.xy.LineAndPointFormatter;
 import com.androidplot.xy.XYPlot;
-import com.androidplot.xy.XYSeriesFormatter;
 
 import org.joda.time.DateTime;
-import org.joda.time.Duration;
 import org.samcrow.antrecorder.Event.Type;
-import org.samcrow.simplechart.Chart;
-import org.samcrow.simplechart.Entry;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.text.ParseException;
-import java.util.ArrayList;
 import java.util.Locale;
 
 public class MainActivity extends Activity {
