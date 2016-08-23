@@ -1,15 +1,16 @@
 package org.samcrow.antrecorder;
 
 import android.util.Log;
-import android.util.SparseArray;
 
 import com.androidplot.xy.XYSeries;
 
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
+import org.samcrow.antrecorder.EventModel.IntervalRates;
 
 import java.io.IOException;
 import java.text.ParseException;
+import java.util.Iterator;
 
 /**
  * A data series that provides ant rates
@@ -17,55 +18,20 @@ import java.text.ParseException;
 public class AntRateSeries implements XYSeries {
 
     /**
-     * The time interval between points on the graph
-     */
-    private static final Duration INTERVAL = Duration.standardMinutes(1);
-
-    /**
-     * The event file
-     */
-    private final EventFile mFile;
-    /**
      * The model
      */
-    private final CountModel mModel;
+    private final EventModel mModel;
 
-    /**
-     * The cached points
-     */
-    private final SparseArray<XY> mCache;
-
-    public AntRateSeries(EventFile file, CountModel model) {
-        if (file == null) {
-            throw new NullPointerException("file must not be null");
-        }
+    public AntRateSeries(EventModel model) {
         if (model == null) {
             throw new NullPointerException("model must not be null");
         }
-        mFile = file;
         mModel = model;
-        mCache = new SparseArray<>();
     }
 
     @Override
     public int size() {
-        try {
-            final Event firstEvent = mFile.getFirstEvent();
-            if (firstEvent != null) {
-                final DateTime start = firstEvent.getTime();
-                final DateTime now = DateTime.now();
-                final Duration elapsedTime = new Duration(start, now);
-                // Return number of intervals that have passed, rounded up
-                final int size = (int) Math.ceil(elapsedTime.getMillis() / (double) INTERVAL.getMillis());
-                return size;
-            } else {
-                // No event in file
-                return 0;
-            }
-        } catch (IOException | ParseException e) {
-            Log.e(AntRateSeries.class.getSimpleName(), "Failed to read file", e);
-            return 0;
-        }
+        return mModel.getIntervalCount();
     }
 
     @Override
@@ -94,11 +60,13 @@ public class AntRateSeries implements XYSeries {
     }
 
     private XY calculatePoint(int index) throws IOException, ParseException {
-        final DateTime start = mFile.getFirstEvent().getTime();
-        final DateTime regionEnd = start.withDurationAdded(INTERVAL, index + 1);
-        final double inRate = mModel.getInRate(regionEnd, INTERVAL);
-        final double outRate = mModel.getOutRate(regionEnd, INTERVAL);
-        return new XY(inRate, outRate);
+        final Iterator<IntervalRates> rates = mModel.intervalRatesIterator();
+        // Skip to get to the correct index
+        for (int i = 0; i < index; i++) {
+            rates.next();
+        }
+        final IntervalRates requestedIntervalRates = rates.next();
+        return new XY(requestedIntervalRates.mInRate, requestedIntervalRates.mOutRate);
     }
 
 

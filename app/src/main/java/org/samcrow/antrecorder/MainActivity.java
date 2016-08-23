@@ -27,17 +27,27 @@ import com.androidplot.xy.LineAndPointFormatter;
 import com.androidplot.xy.XYPlot;
 
 import org.joda.time.DateTime;
+import org.joda.time.Duration;
 import org.samcrow.antrecorder.Event.Type;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.Locale;
+import java.util.Timer;
 
 public class MainActivity extends Activity {
     private static final String TAG = MainActivity.class.getSimpleName();
     private static final float VOLUME = 0.5f;
+
+    /**
+     * The duration over which to calculate ant rates
+     */
+    private static final Duration RATE_INTERVAL = Duration.standardMinutes(5);
+    /**
+     * The interval, in milliseconds, between file writes
+     */
+    private static final long WRITE_INTERVAL = 10000;
 
     private EditText dataSetField;
     private Button inButton;
@@ -58,15 +68,19 @@ public class MainActivity extends Activity {
     private XYPlot mChart;
 
     /**
-     * The current event file, or null if no dataset name has been entered
+     * The current event model, or null if no dataset is active
      */
-    private EventFile mFile;
+    private EventModel mModel;
 
-    private CountModel model;
+    /**
+     * The timer used to schedule file write tasks
+     */
+    private Timer mWriteTimer;
 
     private SoundPool sound;
     private int inSoundId;
     private int outSoundId;
+    private FileUpdater mUpdateTask;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -127,42 +141,45 @@ public class MainActivity extends Activity {
         if (dataSetField.getText().length() != 0) {
             // Some data set was selected
 
-            inCountField.setText("");
-            outCountField.setText("");
+            inCountField.setText("-");
+            outCountField.setText("-");
 
-            try {
-                mFile = new EventFile(getDataPath());
-                model = new CountModel(mFile);
-
-                final LineAndPointFormatter formatter = new LineAndPointFormatter();
-                formatter.configure(this, R.xml.line_formatter);
-                final Paint noFill = new Paint();
-                noFill.setAlpha(0);
-                formatter.setFillPaint(noFill);
-
-                mChart.clear();
-                mChart.addSeries(new AntRateSeries(mFile, model), formatter);
-                mChart.redraw();
-
-                setButtonsEnabled(true);
-                updateChartData();
-
-            } catch (FileNotFoundException e) {
-                new AlertDialog.Builder(MainActivity.this)
-                        .setTitle("Failed to open or create data file")
-                        .setMessage(e.getLocalizedMessage())
-                        .show();
-            } catch (ParseException e) {
-                new AlertDialog.Builder(MainActivity.this)
-                        .setTitle("Failed to parse data file")
-                        .setMessage(e.getLocalizedMessage())
-                        .show();
-            } catch (IOException e) {
-                new AlertDialog.Builder(MainActivity.this)
-                        .setTitle("Failed to read from data file")
-                        .setMessage(e.getLocalizedMessage())
-                        .show();
+            final File dataFile = getDataPath();
+            if (dataFile.isFile()) {
+                try {
+                    mModel = EventFile.readModel(dataFile, RATE_INTERVAL);
+                } catch (IOException | ParseException e) {
+                    new AlertDialog.Builder(this)
+                            .setTitle("Failed to read existing events")
+                            .setMessage(e.getLocalizedMessage())
+                            .show();
+                    mModel = new EventModel(RATE_INTERVAL);
+                }
+            } else {
+                mModel = new EventModel(RATE_INTERVAL);
             }
+
+            mUpdateTask = new FileUpdater(this, mModel, dataFile);
+            if (mWriteTimer != null) {
+                mWriteTimer.cancel();
+            }
+            mWriteTimer = new Timer();
+            mWriteTimer.schedule(mUpdateTask, WRITE_INTERVAL, WRITE_INTERVAL);
+
+            final LineAndPointFormatter formatter = new LineAndPointFormatter();
+            formatter.configure(this, R.xml.line_formatter);
+            final Paint noFill = new Paint();
+            noFill.setAlpha(0);
+            formatter.setFillPaint(noFill);
+
+            mChart.clear();
+            mChart.addSeries(new AntRateSeries(mModel), formatter);
+            mChart.redraw();
+
+            setButtonsEnabled(true);
+            updateChartData();
+            updateCountLabels();
+
         } else {
             // No data set
             setButtonsEnabled(false);
@@ -173,6 +190,14 @@ public class MainActivity extends Activity {
     protected void onPause() {
         super.onPause();
         saveDatasetName();
+        if (mWriteTimer != null) {
+            mWriteTimer.cancel();
+            mWriteTimer = null;
+            // Ensure that events are written
+            if (mUpdateTask != null) {
+                mUpdateTask.run();
+            }
+        }
     }
 
     @Override
@@ -197,9 +222,12 @@ public class MainActivity extends Activity {
     }
 
     private void updateCountLabels() {
-        if (model != null) {
-            inCountField.setText(String.format(Locale.getDefault(), "%d", model.getInCount()));
-            outCountField.setText(String.format(Locale.getDefault(), "%d", model.getOutCount()));
+        if (mModel != null) {
+            synchronized (mModel) {
+                inCountField.setText(String.format(Locale.getDefault(), "%d", mModel.getInCount()));
+                outCountField.setText(
+                        String.format(Locale.getDefault(), "%d", mModel.getOutCount()));
+            }
         } else {
             inCountField.setText("-");
             outCountField.setText("-");
@@ -224,20 +252,15 @@ public class MainActivity extends Activity {
         mDeleteItem.setOnMenuItemClickListener(new OnMenuItemClickListener() {
             @Override
             public boolean onMenuItemClick(MenuItem item) {
-                try {
-                    if (mFile != null) {
-                        mFile.removeLastEvent();
-                        model.deleteLast();
+                if (mModel != null) {
+                    synchronized (mModel) {
+                        mModel.removeLast();
+                        updateCountLabels();
                         updateChartData();
                         Toast.makeText(MainActivity.this, R.string.deleted_entry,
                                 Toast.LENGTH_SHORT)
                                 .show();
                     }
-                } catch (IOException e) {
-                    new AlertDialog.Builder(MainActivity.this)
-                            .setTitle("Failed to delete entry")
-                            .setMessage(e.getLocalizedMessage())
-                            .show();
                 }
 
 
@@ -248,23 +271,17 @@ public class MainActivity extends Activity {
         return true;
     }
 
-    private String getDataPath() {
+    private File getDataPath() {
         return new File(getMemoryCard(),
-                "Ant events " + dataSetField.getText().toString() + ".csv").getAbsolutePath();
+                "Ant events " + dataSetField.getText().toString() + ".csv");
     }
 
     private void saveEvent(Event event) {
-        if (mFile != null) {
-            try {
-                mFile.appendEvent(event);
-                model.process(event);
+        if (mModel != null) {
+            synchronized (mModel) {
+                mModel.add(event);
                 updateCountLabels();
                 updateChartData();
-            } catch (IOException e) {
-                new AlertDialog.Builder(MainActivity.this)
-                        .setTitle("Failed to save entry")
-                        .setMessage(e.getLocalizedMessage())
-                        .show();
             }
         } else {
             new AlertDialog.Builder(MainActivity.this)
