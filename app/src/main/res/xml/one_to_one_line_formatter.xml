@@ -2,6 +2,6 @@
 <!-- Configuration for display of lines on the graph -->
 <config
     linePaint.strokeWidth="5dp"
-    linePaint.color="#000000"
-    vertexPaint.color="#000000"
+    linePaint.color="#DDDDDD"
+    vertexPaint.color="#DDDDDD"
     vertexPaint.strokeWidth="10dp"/>

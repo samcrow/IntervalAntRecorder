@@ -10,6 +10,7 @@ import android.media.AudioManager;
 import android.media.SoundPool;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -35,6 +36,7 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.util.Locale;
 import java.util.Timer;
+import java.util.TimerTask;
 
 public class MainActivity extends Activity {
     private static final String TAG = MainActivity.class.getSimpleName();
@@ -48,6 +50,11 @@ public class MainActivity extends Activity {
      * The interval, in milliseconds, between file writes
      */
     private static final long WRITE_INTERVAL = 10000;
+
+    /**
+     * The interval, in milliseconds, between graph updates
+     */
+    private static final long GRAPH_INTERVAL = 1000;
 
     private EditText dataSetField;
     private Button inButton;
@@ -77,6 +84,11 @@ public class MainActivity extends Activity {
      */
     private Timer mWriteTimer;
 
+    /**
+     * The timer used to schedule graph updates
+     */
+    private Timer mGraphTimer;
+
     private SoundPool sound;
     private int inSoundId;
     private int outSoundId;
@@ -96,8 +108,8 @@ public class MainActivity extends Activity {
         outCountField = (TextView) findViewById(R.id.out_count);
 
         mChart = (XYPlot) findViewById(R.id.chart);
-        mChart.setDomainBoundaries(0, BoundaryMode.FIXED, null, BoundaryMode.AUTO);
-        mChart.setRangeBoundaries(0, BoundaryMode.FIXED, null, BoundaryMode.AUTO);
+        mChart.setDomainBoundaries(0, BoundaryMode.FIXED, 1, BoundaryMode.FIXED);
+        mChart.setRangeBoundaries(0, BoundaryMode.FIXED, 1, BoundaryMode.FIXED);
         mChart.getLegendWidget().setVisible(false);
 
 
@@ -166,13 +178,26 @@ public class MainActivity extends Activity {
             mWriteTimer = new Timer();
             mWriteTimer.schedule(mUpdateTask, WRITE_INTERVAL, WRITE_INTERVAL);
 
-            final LineAndPointFormatter formatter = new LineAndPointFormatter();
-            formatter.configure(this, R.xml.line_formatter);
-            final Paint noFill = new Paint();
-            noFill.setAlpha(0);
-            formatter.setFillPaint(noFill);
+            if (mGraphTimer != null) {
+                mGraphTimer.cancel();
+            }
+            mGraphTimer = new Timer();
+            mGraphTimer.schedule(new GraphUpdater(), GRAPH_INTERVAL, GRAPH_INTERVAL);
 
             mChart.clear();
+            final Paint noFill = new Paint();
+            noFill.setAlpha(0);
+            {
+                // 1:1 series
+                final LineAndPointFormatter formatter11 = new LineAndPointFormatter();
+                formatter11.configure(this, R.xml.one_to_one_line_formatter);
+                formatter11.setFillPaint(noFill);
+
+                mChart.addSeries(new OneToOneSeries(), formatter11);
+            }
+            final LineAndPointFormatter formatter = new LineAndPointFormatter();
+            formatter.configure(this, R.xml.line_formatter);
+            formatter.setFillPaint(noFill);
             mChart.addSeries(new AntRateSeries(mModel), formatter);
             mChart.redraw();
 
@@ -197,6 +222,11 @@ public class MainActivity extends Activity {
             if (mUpdateTask != null) {
                 mUpdateTask.run();
             }
+        }
+
+        if (mGraphTimer != null) {
+            mGraphTimer.cancel();
+            mGraphTimer = null;
         }
     }
 
@@ -280,8 +310,6 @@ public class MainActivity extends Activity {
         if (mModel != null) {
             synchronized (mModel) {
                 mModel.add(event);
-                updateCountLabels();
-                updateChartData();
             }
         } else {
             new AlertDialog.Builder(MainActivity.this)
@@ -316,5 +344,26 @@ public class MainActivity extends Activity {
             return dir;
         }
         return Environment.getExternalStorageDirectory();
+    }
+
+    /**
+     * Periodically updates the graph and count labels
+     */
+    private class GraphUpdater extends TimerTask {
+
+        private final Handler mHandler = new Handler();
+
+        @Override
+        public void run() {
+            mHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    synchronized (mModel) {
+                        updateCountLabels();
+                        updateChartData();
+                    }
+                }
+            });
+        }
     }
 }
