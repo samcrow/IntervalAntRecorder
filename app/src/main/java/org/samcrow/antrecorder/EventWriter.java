@@ -146,20 +146,37 @@ public final class EventWriter implements Runnable {
 	}
 
 	private void deleteLast() throws IOException {
-		// Can be slow
-		// Reread everything
-		mFile.seek(0);
-		String line = mFile.readLine();
-		while (true) {
-			final String newLine = mFile.readLine();
-			if (newLine == null) {
-				// line contains the last line of the file, to be deleted
-				final int lineLength = line.length() + 1;
-				mFile.setLength(mFile.length() - lineLength);
-			} else {
-				line = newLine;
+		if (mFile.length() < 2) {
+			// Nothing to delete
+			return;
+		}
+
+		// Seek to the end, then go back to the newline before the last line
+		// Start 2 before the file length, so that the first character read will be just before
+		// the newline at the end of the file
+		mFile.seek(mFile.length() - 2);
+		// Move back until a newline is found
+		while (mFile.getFilePointer() != 0) {
+			mFile.seek(mFile.getFilePointer() - 1);
+			final byte thisCharacter = mFile.readByte();
+			// Move back again to undo the forward movement caused by the write
+			mFile.seek(mFile.getFilePointer() - 1);
+			final byte newline = (byte) 0x0A;
+			if (thisCharacter == newline) {
+				// At the end of the line
+				// Truncate the file to this length
+				mFile.setLength(mFile.getFilePointer() + 1);
+				break;
 			}
 		}
+		// Beginning of file reached
+		if (mFile.getFilePointer() == 0) {
+			mFile.setLength(0);
+		}
+
+		// Update counts
+		countEventsInFile();
+		callCountHandler();
 	}
 
 	private void countEventsInFile() throws IOException {
@@ -197,19 +214,5 @@ public final class EventWriter implements Runnable {
 				mExceptionHandler.countsUpdated(mInCount, mOutCount);
 			}
 		});
-	}
-
-	/**
-	 * Reads one byte from mFile and returns it
-	 * @return the byte read
-	 * @throws IOException if an error occurs or if mFile is at the end of file
-	 */
-	private byte readByte() throws IOException {
-		final int readInt = mFile.readByte();
-		if (readInt == -1) {
-			throw new IOException("Reached end of file when trying to read");
-		} else {
-			return (byte) readInt;
-		}
 	}
 }
