@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- Configuration for display of lines on the graph -->
-<config
-    linePaint.strokeWidth="5dp"
-    linePaint.color="#DDDDDD"
-    vertexPaint.color="#DDDDDD"
-    vertexPaint.strokeWidth="10dp"/>
