@@ -21,13 +21,13 @@ import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
-import android.widget.TextView.OnEditorActionListener;
 
 import org.joda.time.DateTime;
 import org.samcrow.antrecorder.Event.Type;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Locale;
 import java.util.Queue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -101,6 +101,13 @@ public class MainActivity extends Activity {
 		// Disable buttons (they will be enabled when a data set is entered)
 		setButtonsEnabled(false);
 
+		dataSetField.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+			@Override
+			public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+				updateDataSet();
+				return false;
+			}
+		});
 		dataSetField.setOnFocusChangeListener(new View.OnFocusChangeListener() {
 			@Override
 			public void onFocusChange(View v, boolean hasFocus) {
@@ -137,16 +144,40 @@ public class MainActivity extends Activity {
 
 	private void updateDataSet() {
 		if (dataSetField.getText().length() != 0) {
-			// Some data set was selected
+			// Some data set was
+
+			// Shut down any previous write operations
+			if (mFileQueue != null) {
+				mFileQueue.add(FileAction.shutdown());
+				mFileQueue = null;
+			}
 
 			inCountField.setText("-");
 			outCountField.setText("-");
 
 			setButtonsEnabled(true);
-			updateCountLabels();
 
 			try {
-				final EventWriter writer = new EventWriter(this, getDataPath());
+				final EventWriter writer = new EventWriter(getDataPath(), new EventWriter.WriteHandler() {
+					@Override
+					public void handleException(IOException e) {
+						new AlertDialog.Builder(MainActivity.this)
+								.setTitle("Failed to write event")
+								.setMessage(e.getLocalizedMessage())
+								.setNeutralButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+									@Override
+									public void onClick(DialogInterface dialog, int which) {
+										finish();
+									}
+								})
+								.show();
+					}
+					@Override
+					public void countsUpdated(int inCount, int outCount) {
+						inCountField.setText(String.format(Locale.getDefault(), "%d", inCount));
+						outCountField.setText(String.format(Locale.getDefault(), "%d", outCount));
+					}
+				});
 				mFileQueue = writer.getQueue();
 				mExecutor.submit(writer);
 			} catch (IOException e) {
@@ -185,7 +216,6 @@ public class MainActivity extends Activity {
 		super.onResume();
 		restoreDatasetName();
 		updateDataSet();
-		updateCountLabels();
 	}
 
 	private void saveDatasetName() {
@@ -199,10 +229,6 @@ public class MainActivity extends Activity {
 				MODE_PRIVATE);
 		final String name = prefs.getString("dataset_name", "");
 		dataSetField.setText(name);
-	}
-
-	private void updateCountLabels() {
-		// TODO
 	}
 
 	private void setButtonsEnabled(boolean enabled) {

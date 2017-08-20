@@ -1,7 +1,5 @@
 package org.samcrow.antrecorder;
 
-import android.app.AlertDialog;
-import android.content.Context;
 import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.util.Log;
@@ -32,8 +30,9 @@ import java.util.concurrent.LinkedBlockingQueue;
  */
 public final class EventWriter implements Runnable {
 
-	public interface WriteExceptionHandler {
+	public interface WriteHandler {
 		void handleException(IOException e);
+		void countsUpdated(int inCount, int outCount);
 	}
 
 	/**
@@ -65,7 +64,10 @@ public final class EventWriter implements Runnable {
 	private final Handler mHandler;
 
 	@NonNull
-	private final WriteExceptionHandler mExceptionHandler;
+	private final WriteHandler mExceptionHandler;
+
+	private int mInCount;
+	private int mOutCount;
 
 
 	/**
@@ -75,13 +77,13 @@ public final class EventWriter implements Runnable {
 	 *                         The handler will be called on the main (UI) thread.
 	 * @throws IOException if the file could not be created or written to
 	 */
-	public EventWriter(@NonNull File file, @NonNull WriteExceptionHandler exceptionHandler) throws IOException {
+	public EventWriter(@NonNull File file, @NonNull WriteHandler exceptionHandler) throws IOException {
 		mFile = new RandomAccessFile(file, "rw");
 		mActionQueue = new LinkedBlockingQueue<>();
 		mExceptionHandler = exceptionHandler;
 		mHandler = new Handler();
-
-		// Read the file to count the existing events
+		mInCount = 0;
+		mOutCount = 0;
 	}
 
 	/**
@@ -95,6 +97,11 @@ public final class EventWriter implements Runnable {
 	@Override
 	public void run() {
 		try {
+			// Count existing events
+			countEventsInFile();
+			callCountHandler();
+			mFile.seek(mFile.length());
+
 			while (true) {
 				try {
 					final FileAction action = mActionQueue.take();
@@ -113,22 +120,12 @@ public final class EventWriter implements Runnable {
 			}
 		} catch (final IOException e) {
 			Log.e(TAG, "Failed to write", e);
-			mHandler.post(new Runnable() {
-				@Override
-				public void run() {
-					mExceptionHandler.handleException(e);
-				}
-			});
+			callExceptionHandler(e);
 		} finally {
 			try {
 				mFile.close();
 			} catch (final IOException e) {
-				mHandler.post(new Runnable() {
-					@Override
-					public void run() {
-						mExceptionHandler.handleException(e);
-					}
-				});
+				callExceptionHandler(e);
 			}
 		}
 	}
@@ -140,30 +137,66 @@ public final class EventWriter implements Runnable {
 
 		final byte[] encoded = line.getBytes(UTF8);
 		mFile.write(encoded);
+		if (event.getType().equals(Event.Type.AntIn)) {
+			mInCount++;
+		} else if (event.getType().equals(Event.Type.AntOut)) {
+			mOutCount++;
+		}
+		callCountHandler();
 	}
 
 	private void deleteLast() throws IOException {
-		// Seek backwards until the beginning of the file or a newline is reached
-		long offset = mFile.getFilePointer();
+		// Can be slow
+		// Reread everything
+		mFile.seek(0);
+		String line = mFile.readLine();
 		while (true) {
-			if (offset == 0) {
-				// Already at beginning: Delete everything
-				mFile.setLength(0);
-				return;
+			final String newLine = mFile.readLine();
+			if (newLine == null) {
+				// line contains the last line of the file, to be deleted
+				final int lineLength = line.length() + 1;
+				mFile.setLength(mFile.length() - lineLength);
+			} else {
+				line = newLine;
 			}
-			offset -= 1;
-			mFile.seek(offset);
-			final byte current = readByte();
-			if (current == '\n') {
-				// offset is the position of the first byte of the record to be deleted
-				// (one after the \n)
-				mFile.setLength(offset);
+		}
+	}
+
+	private void countEventsInFile() throws IOException {
+		mInCount = 0;
+		mOutCount = 0;
+		mFile.seek(0);
+		String line;
+		while ((line = mFile.readLine()) != null) {
+			final String[] parts = line.split(",");
+			if (parts.length < 2) {
+				continue;
+			}
+			final String inOut = parts[1];
+			if (inOut.equals("In")) {
+				mInCount++;
+			} else if (inOut.equals("Out")) {
+				mOutCount++;
 			}
 		}
 	}
 
 	private void callExceptionHandler(final IOException e) {
+		mHandler.post(new Runnable() {
+			@Override
+			public void run() {
+				mExceptionHandler.handleException(e);
+			}
+		});
+	}
 
+	private void callCountHandler() {
+		mHandler.post(new Runnable() {
+			@Override
+			public void run() {
+				mExceptionHandler.countsUpdated(mInCount, mOutCount);
+			}
+		});
 	}
 
 	/**
