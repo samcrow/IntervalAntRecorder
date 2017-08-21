@@ -38,37 +38,14 @@
         android:orientation="horizontal"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:weightSum="1"
-        android:padding="10dp"
-        android:id="@+id/enter_name_view"
-        android:layout_above="@+id/linearLayout2"
-        android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="true">
-
-        <TextView
-            android:layout_width="fill_parent"
-            android:layout_height="wrap_content"
-            android:textAppearance="?android:attr/textAppearanceLarge"
-            android:text="@string/enter_data_set_request"
-            android:id="@+id/enter_data_set_label"
-            android:textSize="30sp"
-            android:layout_marginLeft="10dp"
-            android:drawableLeft="@drawable/ic_error_black_36dp"
-            android:drawablePadding="10dp"
-            android:layout_gravity="center"/>
-    </LinearLayout>
-
-    <LinearLayout
-        android:orientation="horizontal"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="false"
         android:layout_alignParentRight="true"
         android:layout_alignParentEnd="false"
         android:weightSum="1"
-        android:id="@+id/linearLayout2">
+        android:id="@+id/linearLayout2"
+        android:layout_below="@+id/enter_data_set_label">
 
         <LinearLayout
             android:orientation="vertical"
@@ -89,14 +66,13 @@
                 android:textSize="@dimen/count_text_size"/>
 
             <Button
+                android:id="@+id/in_button"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/in"
-                android:id="@+id/in_button"
-                android:textSize="@dimen/large_button_text_size"
                 android:padding="@dimen/large_button_padding"
                 android:soundEffectsEnabled="false"
-                />
+                android:text="@string/in"
+                android:textSize="@dimen/large_button_text_size" />
         </LinearLayout>
 
         <Space
@@ -133,6 +109,20 @@
                 />
         </LinearLayout>
     </LinearLayout>
+
+    <TextView
+        android:id="@+id/enter_data_set_label"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentRight="true"
+        android:layout_centerVertical="true"
+        android:layout_gravity="center"
+        android:drawableLeft="@drawable/ic_error_black_36dp"
+        android:drawablePadding="10dp"
+        android:text="@string/enter_data_set_request"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:textSize="30sp" />
 
 
 </RelativeLayout>
