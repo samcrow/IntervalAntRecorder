@@ -1,8 +1,11 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
+      xmlns:app="http://schemas.android.com/apk/res-auto"
       xmlns:tools="http://schemas.android.com/tools"
       tools:context=".MainActivity">
-    <item android:id="@+id/action_delete"
-          android:title="@string/delete_last_entry"
-          android:icon="@drawable/ic_delete_white_24dp"
-          android:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/action_delete"
+        android:icon="@drawable/ic_delete_white_24dp"
+        android:showAsAction="ifRoom"
+        android:title="@string/delete_last_entry"
+        app:showAsAction="ifRoom"/>
 </menu>

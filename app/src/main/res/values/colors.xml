@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="in_button_background">#ccff90</color>
+    <color name="in_button_background_dark">#99cc60</color>
+    <color name="out_button_background">#ffe082</color>
+    <color name="out_button_background_dark">#caae53</color>
+</resources>

@@ -11,4 +11,7 @@
     <string name="zero">0</string>
     <string name="delete_last_entry">Delete last entry</string>
     <string name="deleted_entry">Deleted entry</string>
+    <string name="start">Start</string>
+    <string name="data_set_name">Data set name</string>
+    <string name="recent_data_sets">Recent data sets</string>
 </resources>

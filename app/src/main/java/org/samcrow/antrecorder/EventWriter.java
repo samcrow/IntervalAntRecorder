@@ -13,6 +13,7 @@ import java.nio.charset.Charset;
 import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Asynchronously writes events to a file
@@ -66,9 +67,19 @@ public final class EventWriter implements Runnable {
 	@NonNull
 	private final WriteHandler mExceptionHandler;
 
+	/**
+	 * The count of in events in the file
+	 */
 	private int mInCount;
+	/**
+	 * The count of out events in the file
+	 */
 	private int mOutCount;
 
+	/**
+	 * If this writer is running
+	 */
+	private volatile boolean mRunning;
 
 	/**
 	 * Creates an EventWriter to write to a file
@@ -84,6 +95,7 @@ public final class EventWriter implements Runnable {
 		mHandler = new Handler();
 		mInCount = 0;
 		mOutCount = 0;
+		mRunning = false;
 	}
 
 	/**
@@ -96,6 +108,7 @@ public final class EventWriter implements Runnable {
 
 	@Override
 	public void run() {
+		mRunning = true;
 		try {
 			// Count existing events
 			countEventsInFile();
@@ -118,16 +131,28 @@ public final class EventWriter implements Runnable {
 
 				}
 			}
-		} catch (final IOException e) {
+		} catch (IOException e) {
 			Log.e(TAG, "Failed to write", e);
 			callExceptionHandler(e);
 		} finally {
+			mRunning = false;
 			try {
 				mFile.close();
-			} catch (final IOException e) {
+			} catch (IOException e) {
 				callExceptionHandler(e);
 			}
 		}
+	}
+
+	/**
+	 * Checks the running status of this writer
+	 *
+	 * This function can safely be called from any thread.
+	 *
+	 * @return true if this writer is running
+	 */
+	public boolean isRunning() {
+		return mRunning;
 	}
 
 	private void writeEvent(Event event) throws IOException {

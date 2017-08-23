@@ -1,128 +1,78 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
                 xmlns:tools="http://schemas.android.com/tools"
-                xmlns:ap="http://schemas.android.com/apk/res-auto"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:paddingLeft="@dimen/activity_horizontal_margin"
-                android:paddingRight="@dimen/activity_horizontal_margin"
-                android:paddingTop="@dimen/activity_vertical_margin"
-                android:paddingBottom="@dimen/activity_bottom_margin"
                 tools:context=".MainActivity"
     >
 
     <LinearLayout
-        android:orientation="horizontal"
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:layout_alignParentTop="true"
-        android:layout_centerHorizontal="true"
-        android:id="@+id/linearLayout">
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textAppearance="?android:attr/textAppearanceLarge"
-            android:text="@string/data_set"
-            android:id="@+id/textView"
-            android:layout_marginRight="10dp"/>
-
-        <EditText
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:id="@+id/data_set_field"
-            android:layout_weight="1"
-            android:inputType="textCapSentences"/>
-    </LinearLayout>
-
-    <LinearLayout
-        android:orientation="horizontal"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
+        android:layout_height="match_parent"
+        android:orientation="horizontal"
+        android:layout_alignParentTop="true"
         android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="false"
-        android:layout_alignParentRight="true"
-        android:layout_alignParentEnd="false"
-        android:weightSum="1"
-        android:id="@+id/linearLayout2"
-        android:layout_below="@+id/enter_data_set_label">
+        android:layout_alignParentStart="true">
 
         <LinearLayout
-            android:orientation="vertical"
-            android:layout_width="fill_parent"
-            android:layout_height="wrap_content"
-            android:layout_weight="0.5"
-            android:baselineAligned="false"
-            android:layout_gravity="bottom|left"
-            >
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="bottom"
+            android:orientation="vertical">
 
             <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textAppearance="?android:attr/textAppearanceLarge"
-                android:text="@string/zero"
                 android:id="@+id/in_count"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
                 android:layout_gravity="center"
+                android:layout_weight="2"
+                android:gravity="center_vertical|center_horizontal"
+                android:text="@string/zero"
+                android:textAppearance="?android:attr/textAppearanceLarge"
                 android:textSize="@dimen/count_text_size"/>
 
             <Button
                 android:id="@+id/in_button"
-                android:layout_width="fill_parent"
-                android:layout_height="wrap_content"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
                 android:padding="@dimen/large_button_padding"
                 android:soundEffectsEnabled="false"
                 android:text="@string/in"
-                android:textSize="@dimen/large_button_text_size" />
+                android:textSize="@dimen/large_button_text_size"/>
+
         </LinearLayout>
 
-        <Space
-            android:layout_width="@dimen/large_button_spacing"
-            android:layout_height="match_parent"
-            android:layout_weight="0"/>
-
         <LinearLayout
-            android:orientation="vertical"
-            android:layout_width="fill_parent"
-            android:layout_height="wrap_content"
-            android:layout_weight="0.5"
-            android:baselineAligned="false"
-            android:layout_gravity="bottom|right"
-            >
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="bottom"
+            android:orientation="vertical">
 
             <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textAppearance="?android:attr/textAppearanceLarge"
-                android:text="@string/zero"
                 android:id="@+id/out_count"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
                 android:layout_gravity="center"
+                android:layout_weight="2"
+                android:gravity="center_vertical|center_horizontal"
+                android:text="@string/zero"
+                android:textAppearance="?android:attr/textAppearanceLarge"
                 android:textSize="@dimen/count_text_size"/>
 
             <Button
-                android:layout_width="fill_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/out"
                 android:id="@+id/out_button"
-                android:textSize="@dimen/large_button_text_size"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
                 android:padding="@dimen/large_button_padding"
                 android:soundEffectsEnabled="false"
-                />
+                android:text="@string/out"
+                android:textSize="@dimen/large_button_text_size"/>
+
         </LinearLayout>
     </LinearLayout>
-
-    <TextView
-        android:id="@+id/enter_data_set_label"
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:layout_alignParentEnd="true"
-        android:layout_alignParentRight="true"
-        android:layout_centerVertical="true"
-        android:layout_gravity="center"
-        android:drawableLeft="@drawable/ic_error_black_36dp"
-        android:drawablePadding="10dp"
-        android:text="@string/enter_data_set_request"
-        android:textAppearance="?android:attr/textAppearanceLarge"
-        android:textSize="30sp" />
 
 
 </RelativeLayout>
