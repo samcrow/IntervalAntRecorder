@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/AntRecorder.iml" filepath="$PROJECT_DIR$/AntRecorder.iml" />
+      <module fileurl="file://$PROJECT_DIR$/IntervalAntCounter.iml" filepath="$PROJECT_DIR$/IntervalAntCounter.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
     </modules>
   </component>

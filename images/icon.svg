@@ -9,14 +9,14 @@
    xmlns="http://www.w3.org/2000/svg"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   width="512"
-   height="512"
+   width="546.13336"
+   height="546.13336"
    viewBox="0 0 512.00001 512.00001"
    id="svg2"
    version="1.1"
-   inkscape:version="0.91 r13725"
+   inkscape:version="0.92.1 r15371"
    sodipodi:docname="icon.svg"
-   inkscape:export-filename="/Users/samcrow/AndroidStudioProjects/AntRecorder/app/src/main/res/mipmap-xxhdpi/ic_launcher.png"
+   inkscape:export-filename="/home/samcrow/Documents/Ants/IntervalAntCounter/app/src/main/res/mipmap-xxhdpi/ic_launcher.png"
    inkscape:export-xdpi="25.309999"
    inkscape:export-ydpi="25.309999">
   <defs
@@ -28,17 +28,17 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="0.7"
-     inkscape:cx="307.85714"
-     inkscape:cy="262.85714"
+     inkscape:zoom="0.98994949"
+     inkscape:cx="131.90402"
+     inkscape:cy="256.77556"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
      units="px"
-     inkscape:window-width="1680"
-     inkscape:window-height="1001"
+     inkscape:window-width="1920"
+     inkscape:window-height="1024"
      inkscape:window-x="0"
-     inkscape:window-y="1"
+     inkscape:window-y="27"
      inkscape:window-maximized="1" />
   <metadata
      id="metadata7">
@@ -48,7 +48,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -67,14 +67,14 @@
          id="path4136"
          style="opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:26.78645706;stroke-linecap:square;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
       <path
-         sodipodi:nodetypes="ccc"
+         style="opacity:1;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:26.78645706;stroke-linecap:square;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+         d="M 494.29466,796.36218 C 494.29464,927.96867 387.60649,1034.6568 256,1034.6568 c 0,-476.58928 0,0 0,-476.58928 131.60651,0 238.29466,106.68815 238.29466,238.29466 z"
+         id="circle827"
          inkscape:connector-curvature="0"
-         id="path4138"
-         d="M 145.056,719.60634 256,796.36216 256,604.8078"
-         style="opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:29.32809639;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:2.29999995;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+         sodipodi:nodetypes="sccs" />
     </g>
     <g
-       transform="matrix(0.13286796,0.09318684,-0.09318684,0.13286796,193.80713,767.2941)"
+       transform="matrix(0.16228856,-3.2348207e-4,3.2348207e-4,0.16228856,-2.0786926,796.79426)"
        id="layer1-4"
        inkscape:label="Layer 1">
       <ellipse

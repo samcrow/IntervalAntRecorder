@@ -5,11 +5,11 @@ android {
     buildToolsVersion "25.0.3"
 
     defaultConfig {
-        applicationId "org.samcrow.antrecorder"
+        applicationId "org.samcrow.interval_ant_recorder"
         minSdkVersion 16
         targetSdkVersion 25
-        versionCode 5
-        versionName "1.4.0"
+        versionCode 1
+        versionName "1.0.0"
     }
     buildTypes {
         release {
@@ -24,4 +24,5 @@ dependencies {
     compile 'joda-time:joda-time:2.9.9'
     compile 'com.android.support:support-v4:25.3.1'
     compile 'com.android.support:appcompat-v7:25.3.1'
+    compile 'com.android.support.constraint:constraint-layout:1.1.2'
 }
