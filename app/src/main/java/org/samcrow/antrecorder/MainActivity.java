@@ -3,8 +3,10 @@ package org.samcrow.antrecorder;
 import android.media.AudioManager;
 import android.media.SoundPool;
 import android.os.Bundle;
-import android.support.v4.view.ViewCompat;
-import android.support.v7.app.AppCompatActivity;
+
+import androidx.appcompat.content.res.AppCompatResources;
+import androidx.core.view.ViewCompat;
+import androidx.appcompat.app.AppCompatActivity;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
@@ -22,7 +24,7 @@ public class MainActivity extends AppCompatActivity {
 	/**
 	 * The volume level for sounds
 	 */
-	private static final float VOLUME = 0.5f;
+	private static final float VOLUME = 1.0f;
 
 	private TextView mInCountField;
 	private TextView mOutCountField;
@@ -65,8 +67,8 @@ public class MainActivity extends AppCompatActivity {
 		mOutCountField = (TextView) findViewById(R.id.out_count);
 		mTimeField = (TextView) findViewById(R.id.time_label);
 
-		ViewCompat.setBackgroundTintList(mInButton, getResources().getColorStateList(R.color.in_background));
-		ViewCompat.setBackgroundTintList(mOutButton, getResources().getColorStateList(R.color.out_background));
+		ViewCompat.setBackgroundTintList(mInButton, AppCompatResources.getColorStateList(this, R.color.in_background));
+		ViewCompat.setBackgroundTintList(mOutButton, AppCompatResources.getColorStateList(this, R.color.out_background));
 
 		setInCount(0);
 		setOutCount(0);
